@@ -6,7 +6,8 @@
  * Time: 02:24
  */
 
-use O876\Psyl\Evaluator;
+use \O876\Psyl\Evaluator;
+use \O876\Psyl\EvaluationException;
 
 class EvaluatorTest extends PHPUnit_Framework_TestCase
 {
@@ -15,7 +16,7 @@ class EvaluatorTest extends PHPUnit_Framework_TestCase
         $os->opcode('sum', function($a, $b) {
             return $a + $b;
         });
-        $this->assertEquals(23, $os->evaluate(array('sum', 10, 13)));
+        $this->assertEquals(23, $os->evaluate(array('sum', 10, 13), true));
         $os->opcode('mul', function($a, $b) {
             return $a * $b;
         });
@@ -27,8 +28,6 @@ class EvaluatorTest extends PHPUnit_Framework_TestCase
                 array('sum', 50, -30),
                 "---",
                 array('mul', 3, 5)
-            )));
-
+            ), true));
     }
-
 }

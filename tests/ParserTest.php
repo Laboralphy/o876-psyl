@@ -18,8 +18,22 @@ class ParserTest extends PHPUnit_Framework_TestCase
     
 EOT
 );
-        $this->assertEquals(array(
-            'test', 1, 3, 5, array('abc', 'x', 'y', 'z', 'this is an atom')
-        ), $a);
+        $this->assertEquals('test', $a[0]);
+        $this->assertEquals(1, $a[0]->index());
+
+        $this->assertEquals('1', $a[1]);
+        $this->assertEquals(6, $a[1]->index());
+
+        $this->assertEquals('3', $a[2]);
+        $this->assertEquals(8, $a[2]->index());
+
+        $this->assertEquals('5', $a[3]);
+        $this->assertEquals(10, $a[3]->index());
+
+        $this->assertEquals('abc', $a[4][0]);
+        $this->assertEquals('x', $a[4][1]);
+        $this->assertEquals('y', $a[4][2]);
+        $this->assertEquals('z', $a[4][3]);
+        $this->assertEquals('this is an atom', $a[4][4]);
     }
 }

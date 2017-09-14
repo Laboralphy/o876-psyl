@@ -2,15 +2,21 @@
 
 namespace O876\Psyl;
 
+require_once 'Exception.php';
+require_once 'Atom.php';
+
+use O876\Psyl\Exception;
+
 /**
- * @brief Analyseur syntaxique de listes au format PSYL
+ * @brief a PSYL parser
  *
- * Permet d'analyser des liste au format PSYL
- * Ces listes sont des suite de caractères qui respectent le formats suivants
- * - une liste est délimité par les signes { et }
- * - une liste contient des éléments séparé par un caractère non affichable (un ESPACE " " une tabluation ou un retour à la ligne...)
- * - chaque élément peut être une liste ou un atome (toute chaine de caractère qui n'est pas une liste)
- * La classe analyse une chaine de caractère PSYL et la transforme en une structure de données (array imbriqué).
+ * Psyl is a simplified variant of lisp.
+ * A psyl source contains lists and atoms
+ * a list is a collection of lists or atoms delimited by "space" character, begining with "(" and ending with ")"
+ * ex: (this is a list of strings) ("this" "is" "a" "list" "of" "strings")
+ * (nested lists (nested list 1) (nested list 2))
+ *
+ * The parse will turn a psyl source into a structure of nested arrays
  *
  * @author Raphaël Marandet
  * @version 100 - 2012.07.02
@@ -29,48 +35,48 @@ class Parser {
     protected $nCurse;
 
     /**
-     * Renvoie TRUE si la fin des données à été atteinte
-     * @return Bool
+     * Returns true if the parser reaches end of source.
+     * @return boolean
      */
     protected function eod() {
         return $this->nIndex >= $this->nDataLen;
     }
 
     /**
-     * Lecture de caractères suivants dans la chaine de donnée
-     * @param $n int nombre de caractère dont il faut avancer
-     * @return int renvoie l'index en cours
+     * advance character index by one  position (or more)
+     * @param $n int number of character
+     * @return int current index
      */
     protected function advance($n = 1) {
         return $this->nIndex += $n;
     }
 
     /**
-     * Renvoi TRUE si le caractère courant est un caractère non affichable (code ASCII <= 32)
-     * @return Bool
+     * returns true if the current character is whitespace (non-printable char)
+     * @return boolean
      */
     protected function peekIsWhiteChar() {
         return trim($this->peek()) == '';
     }
 
     /**
-     * Renvoi TRUE si le caractère courant est un caractère de déclaration de chaine
-     * @return Bool
+     * returns true if the current character is a string enclosing character (usually " double-quote)
+     * @return boolean
      */
     protected function peekIsQuote() {
-        return $this->peek() == self::TOKEN_QU;
+        return $this->peek() == static::TOKEN_QU;
     }
 
     /**
-     * Renvoi TRUE si le caractère courant est un caractère non affichable (code ASCII <= 32)
-     * @return Bool
+     * returns true if the current character is an escape code (usually \)
+     * @return boolean
      */
     protected function peekIsEscape() {
-        return $this->peek() == self::TOKEN_ESC;
+        return $this->peek() == static::TOKEN_ESC;
     }
 
     /**
-     * avance la lecture jusqu'au prochaine caractère affichable
+     * advance source input reading until printable character is found
      */
     protected function advanceNextChar() {
         while (!$this->eod() && $this->peekIsWhiteChar()) {
@@ -78,20 +84,25 @@ class Parser {
         }
     }
 
-    /** Jette un oeil sur le caractère courant sans avance l'index de lecture
-     * @return string caractère courant
+    /**
+     * read the next character without advancing index
+     * @return string
      */
     protected function peek() {
         return $this->sData[$this->nIndex];
     }
 
+    /**
+     * returns the depth value
+     * @return integer
+     */
     public function getCurse() {
         return $this->nCurse;
     }
 
     /**
-     * Lance l'analyse d'un chaine et construit la structure de donnée
-     * @param $sData string, chaine de donnée représentant des listes au format PSYL
+     * Parses a string and build an array
+     * @param $sData string
      * @return array
      */
     public function parse($sData) {
@@ -111,12 +122,12 @@ class Parser {
     }
 
     /**
-     * Analyse une liste. Cette fonction est utilisée par parse()
-     * @return array liste
+     * Parses a list
+     * @return array
      * @throws
      */
     protected function parseList() {
-        $this->nCurse++;
+        ++$this->nCurse;
         $this->advance();
         $this->advanceNextChar();
         $oList = array();
@@ -142,8 +153,9 @@ class Parser {
     }
 
     /**
-     * Analyse un atome. Cette fonction est utilisée par parse()
-     * @return string atome
+     * Parses an atom
+     * @return string
+     * @throws
      */
     protected function parseAtom() {
         $this->nCurse++;
@@ -162,18 +174,17 @@ class Parser {
             }
             if (!$bEscape && $this->peekIsQuote() && $bQuoted) {
                 $this->advance();
-                $this->nCurse--;
-                return $sWord;
+                break;
             }
             if (!$bEscape && !$bQuoted && ($this->peekIsWhiteChar() || $this->peek() == self::TOKEN_CL || $this->peek() == self::TOKEN_OP)) {
-                $this->nCurse--;
-                return $sWord;
+                break;
             }
             $sWord .= $this->peek();
             $this->advance();
         }
-        $this->nCurse--;
-        return $sWord;
+        --$this->nCurse;
+        $node = new Atom();
+        return $node->value($sWord)->index($this->nIndex - strlen($sWord));
     }
 }
 
